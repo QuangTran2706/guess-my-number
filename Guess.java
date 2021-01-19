@@ -24,9 +24,9 @@ public class Guess {
 	public static int make_guess(int hits, int strikes) {
 
 		CodeBreaker codeBreaker = CodeBreaker.getInstance();
-		HitsAndStrikes hitsAndStrikes = new HitsAndStrikes(strikes, hits);
+		Response hitsAndStrikes = new Response(strikes, hits);
 
-		Number myguess = codeBreaker.getCode(hitsAndStrikes);
+		Code myguess = codeBreaker.getCode(hitsAndStrikes);
 
 		return Integer.parseInt(myguess.toString());
 	}
@@ -40,11 +40,11 @@ public class Guess {
 class CodeBreaker {
 
 	//Properties initialization
-	final HashSet<Number> allNumbers;
-	protected final Number[] listOfOptimalFirstGuess;
-	protected final HashSet<HitsAndStrikes> allHitsAndStrikes;
-	protected HashSet<Number> pruneList;
-	protected Number lastGuess;
+	final HashSet<Code> allNumbers;
+	protected final Code[] listOfOptimalFirstGuess;
+	protected final HashSet<Response> allHitsAndStrikes;
+	protected HashSet<Code> pruneList;
+	protected Code lastGuess;
 
 	//Singleton to save memory
 	private static CodeBreaker instance = new CodeBreaker();
@@ -54,20 +54,12 @@ class CodeBreaker {
 	 * Constructor for the class
 	 */
 	public CodeBreaker() {
-		this.allNumbers = Number.createAllPotentialNums();
-		this.allHitsAndStrikes = HitsAndStrikes.createAllHitsAndStrikes();
-		this.pruneList = new HashSet<Number>();
+		this.allNumbers = Code.createAllPotentialNums();
+		this.allHitsAndStrikes = Response.createAllHitsAndStrikes();
+		this.pruneList = new HashSet<Code>();
 		this.pruneList.addAll(allNumbers);
 		this.listOfOptimalFirstGuess = generateListOptimalFirstGuesses();
 
-	}
-
-	/**
-	 * Reset function to start a new game
-	 */
-	protected void reset() {
-		pruneList.clear();
-		pruneList.addAll(allNumbers);
 	}
 
 
@@ -75,15 +67,15 @@ class CodeBreaker {
 	 * Calculate a list of 20 optimal first guess
 	 * @return Number[]
 	 */
-	private Number[] generateListOptimalFirstGuesses() {
-		Number[] firstGuesses = new Number[20];
+	private Code[] generateListOptimalFirstGuesses() {
+		Code[] firstGuesses = new Code[20];
 		int index = 0;
 
 		//For each potential solution
-		for (Number number: this.pruneList){
+		for (Code number: this.pruneList){
 			int currentMax = 0;
 			//Calculate the maximum remaining candidates
-			for (HitsAndStrikes a : this.allHitsAndStrikes){
+			for (Response a : this.allHitsAndStrikes){
 				int remainingGuesses = getPotentialSolutions(this.pruneList, number, a).size();
 				currentMax = Math.max(remainingGuesses, currentMax);
 			}
@@ -108,7 +100,7 @@ class CodeBreaker {
 	 * Pick a random first guess from the array of optimalFirstGuess
 	 * @return Number
 	 */
-	protected Number getFirstGuess() {
+	protected Code getFirstGuess() {
 		this.lastGuess = this.listOfOptimalFirstGuess[new Random().nextInt(20)];
 		return this.lastGuess;
 	}
@@ -121,12 +113,12 @@ class CodeBreaker {
 	 * @param lastGuess : The last guess
 	 * @param hitsAndStrikes : number of hits and strikes
 	 */
-	private void filterPotentialNumbers(HashSet<Number> pruneList, Number lastGuess, HitsAndStrikes hitsAndStrikes) {
-		Number number;
-		for (Iterator<Number> potentialSolutions = pruneList.iterator(); potentialSolutions.hasNext();){
+	private void filterPotentialNumbers(HashSet<Code> pruneList, Code lastGuess, Response hitsAndStrikes) {
+		Code number;
+		for (Iterator<Code> potentialSolutions = pruneList.iterator(); potentialSolutions.hasNext();){
 			number = potentialSolutions.next();
 			Result result = processGuess(number.hashCode(), lastGuess.toString());
-			HitsAndStrikes temp = new HitsAndStrikes(result.getStrikes(), result.getHits());
+			Response temp = new Response(result.getStrikes(), result.getHits());
 			if (!temp.equals(hitsAndStrikes))
 				potentialSolutions.remove();
 		}
@@ -140,7 +132,7 @@ class CodeBreaker {
 	 * @see filterPotentialSolutions
 	 * @see getPotentialSolutions
 	 */
-	protected Number getCode(HitsAndStrikes hitsAndStrikes) {
+	protected Code getCode(Response hitsAndStrikes) {
 
 		if (hitsAndStrikes.getHits() == 0 && hitsAndStrikes.getStrikes() == 0) {
 			return getFirstGuess();
@@ -150,10 +142,10 @@ class CodeBreaker {
 
 		int minimumMax = Integer.MAX_VALUE;
 		//For each potential solution
-		for (Number number: this.pruneList){
+		for (Code number: this.pruneList){
 			int currentMax = 0;
 			//Calculate the maximum remaining candidates
-			for (HitsAndStrikes a : this.allHitsAndStrikes){
+			for (Response a : this.allHitsAndStrikes){
 				int remainingGuesses = getPotentialSolutions(this.pruneList, number, a).size();
 				currentMax = Math.max(remainingGuesses, currentMax);
 			}
@@ -175,9 +167,9 @@ class CodeBreaker {
 	 * @param hitsAndStrikes
 	 * @return HashSet<Number>
 	 */
-	protected HashSet<Number> getPotentialSolutions(HashSet<Number> numbers, Number lastGuess, HitsAndStrikes hitsAndStrikes) {
-		HashSet<Number> result = new HashSet<Number>();
-		for (Number number : numbers) {
+	protected HashSet<Code> getPotentialSolutions(HashSet<Code> numbers, Code lastGuess, Response hitsAndStrikes) {
+		HashSet<Code> result = new HashSet<Code>();
+		for (Code number : numbers) {
 			if (lastGuess.compare(number).equals(hitsAndStrikes)) {
 				result.add(number);
 			}
@@ -227,7 +219,7 @@ class CodeBreaker {
 /**
  * This class handle operation related to the guess number
  */
-class Number{
+class Code{
 	//Properties
 	private final byte[] num;
 
@@ -235,7 +227,7 @@ class Number{
 	 * Constructor
 	 * @param secretNum
 	 */
-	public Number(byte[] secretNum) {
+	public Code(byte[] secretNum) {
 		this.num = secretNum.clone();
 	}
 
@@ -244,7 +236,7 @@ class Number{
 	 * @param secretNum
 	 * @return
 	 */
-	public HitsAndStrikes compare(Number secretNum) {
+	public Response compare(Code secretNum) {
 		//Add all digits of the number to a HashSet
 		HashSet<Integer> set = new HashSet<>(4);
 		set.add(secretNum.get(0));
@@ -261,15 +253,15 @@ class Number{
 			else if (set.contains((int) this.num[i]))
 				hits++;
 		}
-		return new HitsAndStrikes(strikes, hits);
+		return new Response(strikes, hits);
 	}
 
 	/**
 	 * Create a set of 4 digit number from 0000 to 9999
 	 * @return HashSet<Number>
 	 */
-	public static HashSet<Number> createAllPotentialNums() {
-		final HashSet<Number> result = new HashSet<>(10000);
+	public static HashSet<Code> createAllPotentialNums() {
+		final HashSet<Code> result = new HashSet<>(10000);
 		generatelistOfNums(result, 4, new byte[4]);
 		return result;
 	}
@@ -280,10 +272,10 @@ class Number{
 	 * @param length
 	 * @param temp
 	 */
-	private static void generatelistOfNums(HashSet<Number> numbers, int length, byte[] temp) {
+	private static void generatelistOfNums(HashSet<Code> numbers, int length, byte[] temp) {
 		if (length == 0) {
 			if (temp[0] != 0)
-				numbers.add(new Number(temp));
+				numbers.add(new Code(temp));
 		} else {
 			for (byte digit : new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}) {
 				temp[length-1] = digit;
@@ -296,8 +288,8 @@ class Number{
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
-		if (!(o instanceof Number)) return false;
-		Number number = (Number) o;
+		if (!(o instanceof Code)) return false;
+		Code number = (Code) o;
 
 		for (int i = 0; i < 4; i++) {
 			if (num[i] != number.num[i])
@@ -337,7 +329,7 @@ class Number{
 /**
  * This class is the data structure to store hits and strikes value
  */
-class HitsAndStrikes {
+class Response {
 
 	//Class properties
 	public final int strikes;
@@ -348,7 +340,7 @@ class HitsAndStrikes {
 	 * @param strikes : int
 	 * @param hits : int
 	 */
-	public HitsAndStrikes(int strikes, int hits) {
+	public Response(int strikes, int hits) {
 		this.strikes = strikes;
 		this.hits = hits;
 	}
@@ -376,8 +368,8 @@ class HitsAndStrikes {
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
-		if (!(o instanceof HitsAndStrikes)) return false;
-		HitsAndStrikes that = (HitsAndStrikes) o;
+		if (!(o instanceof Response)) return false;
+		Response that = (Response) o;
 		return strikes == that.strikes && hits == that.hits;
 	}
 
@@ -386,13 +378,13 @@ class HitsAndStrikes {
 	 * Calculate all combination of Hits and Strikes
 	 * @return HashSet<HitsAndStrikes>
 	 */
-	public static HashSet<HitsAndStrikes> createAllHitsAndStrikes() {
-		HashSet<HitsAndStrikes> result = new HashSet<>(16);
+	public static HashSet<Response> createAllHitsAndStrikes() {
+		HashSet<Response> result = new HashSet<>(16);
 		for (int strikes = 0; strikes < 4; strikes++) {
 			for (int hits = 0; hits <= 4; hits++) {
 				int sum = hits + strikes;
 				if (sum <= 4) {
-					result.add(new HitsAndStrikes(strikes, hits));
+					result.add(new Response(strikes, hits));
 				}
 			}
 		}
