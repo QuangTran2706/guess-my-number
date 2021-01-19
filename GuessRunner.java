@@ -48,6 +48,7 @@ public class GuessRunner {
 	public static void main(String[] args) {
 		int guess_cnt = 0;
 		int[] possibleTargets = {1914, 2295, 1804, 9102, 2296, 7139, 2309, 9302, 9010, 1085};
+		// the strategy to increase the number of guesses
 		int target = possibleTargets[new Random().nextInt(10)];
 		Result res = new Result();
 		System.out.println("Guess\tResponse\n");
