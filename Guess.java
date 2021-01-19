@@ -23,10 +23,10 @@ public class Guess {
 
 	public static int make_guess(int hits, int strikes) {
 
-		Strategy strategy = Strategy.getInstance();
+		CodeBreaker codeBreaker = CodeBreaker.getInstance();
 		HitsAndStrikes hitsAndStrikes = new HitsAndStrikes(strikes, hits);
 
-		Number myguess = strategy.knuthGuess(hitsAndStrikes);
+		Number myguess = codeBreaker.getCode(hitsAndStrikes);
 
 		return Integer.parseInt(myguess.toString());
 	}
@@ -37,37 +37,37 @@ public class Guess {
 /**
  * This class implement the main algorithm for solving the game
  */
-class Strategy {
+class CodeBreaker {
 
 	//Properties initialization
 	final HashSet<Number> allNumbers;
-	protected final Number[] optimalFirstGuesses;
+	protected final Number[] listOfOptimalFirstGuess;
 	protected final HashSet<HitsAndStrikes> allHitsAndStrikes;
-	protected HashSet<Number> potentialAnswers;
+	protected HashSet<Number> pruneList;
 	protected Number lastGuess;
 
 	//Singleton to save memory
-	private static Strategy instance = new Strategy();
-	public static Strategy getInstance(){return instance;}
+	private static CodeBreaker instance = new CodeBreaker();
+	public static CodeBreaker getInstance(){return instance;}
 
 	/**
 	 * Constructor for the class
 	 */
-	public Strategy() {
+	public CodeBreaker() {
 		this.allNumbers = Number.createAllPotentialNums();
 		this.allHitsAndStrikes = HitsAndStrikes.createAllHitsAndStrikes();
-		this.potentialAnswers = new HashSet<Number>();
-		this.potentialAnswers.addAll(allNumbers);
-		this.optimalFirstGuesses = getListFirstGuesses();
+		this.pruneList = new HashSet<Number>();
+		this.pruneList.addAll(allNumbers);
+		this.listOfOptimalFirstGuess = generateListOptimalFirstGuesses();
 
 	}
 
 	/**
 	 * Reset function to start a new game
 	 */
-	protected void reNew() {
-		potentialAnswers.clear();
-		potentialAnswers.addAll(allNumbers);
+	protected void reset() {
+		pruneList.clear();
+		pruneList.addAll(allNumbers);
 	}
 
 
@@ -75,25 +75,23 @@ class Strategy {
 	 * Calculate a list of 20 optimal first guess
 	 * @return Number[]
 	 */
-	private Number[] getListFirstGuesses() {
+	private Number[] generateListOptimalFirstGuesses() {
 		Number[] firstGuesses = new Number[20];
 		int index = 0;
 
 		//For each potential solution
-		for (Number number: this.potentialAnswers){
+		for (Number number: this.pruneList){
 			int currentMax = 0;
 			//Calculate the maximum remaining candidates
 			for (HitsAndStrikes a : this.allHitsAndStrikes){
-				int remainingGuesses = getPotentialSolutions(this.potentialAnswers, number, a).size();
+				int remainingGuesses = getPotentialSolutions(this.pruneList, number, a).size();
 				currentMax = Math.max(remainingGuesses, currentMax);
 			}
 
-			//If a number has the remaining candidates = 2401, add it to the array
-			//The number 2401 is the smallest remaining candidates for first guess.
+			//If a number has the remaining candidates = 2092, add it to the array
+			//The number 2092 is the smallest remaining candidates for first guess.
 			//We got this number by running knuthGuess on allNumbers
-
-			// Update: 2401 is no longer the smallest candidates since to range is reduce from 0000 to 9999 to 1000 to 9999
-			if (currentMax == 2401){
+			if (currentMax == 2092){
 				if (index < 20)
 					firstGuesses[index++] = number;
 				else
@@ -110,8 +108,8 @@ class Strategy {
 	 * Pick a random first guess from the array of optimalFirstGuess
 	 * @return Number
 	 */
-	protected Number firstGuess() {
-		this.lastGuess = this.optimalFirstGuesses[new Random().nextInt(20)];
+	protected Number getFirstGuess() {
+		this.lastGuess = this.listOfOptimalFirstGuess[new Random().nextInt(20)];
 		return this.lastGuess;
 	}
 
@@ -119,13 +117,13 @@ class Strategy {
 
 	/**
 	 * Filter out numbers that don't produce the same HitsAndStrikes when compared with the guess
-	 * @param numbers : List of potential number
+	 * @param pruneList : List of potential number
 	 * @param lastGuess : The last guess
 	 * @param hitsAndStrikes : number of hits and strikes
 	 */
-	private void filterPotentialSolutions(HashSet<Number> numbers, Number lastGuess, HitsAndStrikes hitsAndStrikes) {
+	private void filterPotentialNumbers(HashSet<Number> pruneList, Number lastGuess, HitsAndStrikes hitsAndStrikes) {
 		Number number;
-		for (Iterator<Number> potentialSolutions = numbers.iterator(); potentialSolutions.hasNext();){
+		for (Iterator<Number> potentialSolutions = pruneList.iterator(); potentialSolutions.hasNext();){
 			number = potentialSolutions.next();
 			Result result = processGuess(number.hashCode(), lastGuess.toString());
 			HitsAndStrikes temp = new HitsAndStrikes(result.getStrikes(), result.getHits());
@@ -142,21 +140,21 @@ class Strategy {
 	 * @see filterPotentialSolutions
 	 * @see getPotentialSolutions
 	 */
-	protected Number knuthGuess(HitsAndStrikes hitsAndStrikes) {
+	protected Number getCode(HitsAndStrikes hitsAndStrikes) {
 
 		if (hitsAndStrikes.getHits() == 0 && hitsAndStrikes.getStrikes() == 0) {
-			return firstGuess();
+			return getFirstGuess();
 		}
 		//Filter out numbers that cannot be the solution
-		this.filterPotentialSolutions(this.potentialAnswers, this.lastGuess, hitsAndStrikes);
+		this.filterPotentialNumbers(this.pruneList, this.lastGuess, hitsAndStrikes);
 
 		int minimumMax = Integer.MAX_VALUE;
 		//For each potential solution
-		for (Number number: this.potentialAnswers){
+		for (Number number: this.pruneList){
 			int currentMax = 0;
 			//Calculate the maximum remaining candidates
 			for (HitsAndStrikes a : this.allHitsAndStrikes){
-				int remainingGuesses = getPotentialSolutions(this.potentialAnswers, number, a).size();
+				int remainingGuesses = getPotentialSolutions(this.pruneList, number, a).size();
 				currentMax = Math.max(remainingGuesses, currentMax);
 			}
 			//If a number has smaller maximum remaining candidates than the global max, pick it
